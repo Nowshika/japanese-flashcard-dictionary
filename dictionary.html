@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese Flip Dictionary</title>
+    <style>
+        :root {
+            --bg-color: #fdfdfb;
+            --text-main: #1a1a1a;
+            --text-muted: #777;
+            --border-color: #222;
+            --card-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: "Hiragino Mincho ProN", "MS Mincho", serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .controls { 
+            margin-bottom: 40px; 
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .category-label {
+            display: block;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            color: #bbb;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        select {
+            background: #fff; 
+            border: 1px solid #eee; 
+            border-radius: 12px;
+            font-family: inherit; 
+            font-size: 0.9rem; 
+            padding: 12px 20px;
+            cursor: pointer; 
+            color: var(--text-main); 
+            outline: none;
+            width: 100%;
+            appearance: none;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            transition: 0.3s;
+        }
+
+        select:hover { border-color: #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+        /* CARD DESIGN */
+        .flashcard-container {
+            perspective: 1500px;
+            width: 100%;
+            max-width: 380px; 
+            height: 520px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .flashcard-container:hover {
+            transform: translateY(-5px); /* Gentle lift on hover */
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+        }
+
+        .is-flipped { transform: rotateY(180deg); }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(0,0,0,0.03);
+            border-radius: 20px; /* FIXED TO 20px */
+        }
+
+        .card-back { 
+            transform: rotateY(180deg); 
+            padding: 0; 
+            overflow: hidden; 
+        }
+
+        .card-back img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+        }
+
+        /* TYPOGRAPHY */
+        .hiragana { font-size: 4rem; margin-bottom: 5px; font-weight: 400; color: #333; }
+        .romaji { font-size: 2.2rem; font-weight: 700; font-family: serif; margin-bottom: 10px; }
+        .pronunciation { font-size: 0.9rem; color: var(--text-muted); font-style: italic; margin-bottom: 25px; }
+        .divider { width: 100%; height: 1px; background-color: var(--border-color); margin-bottom: 30px; }
+        .meaning { font-size: 1.2rem; letter-spacing: 0.05em; text-align: center; }
+        .kanji { font-size: 0.9rem; color: #ddd; letter-spacing: 0.4em; margin-top: 30px; }
+
+        .nav-buttons { margin-top: 40px; display: flex; gap: 60px; align-items: center; }
+
+        button {
+            background: none; border: none; font-family: inherit; font-size: 0.8rem;
+            text-transform: uppercase; letter-spacing: 0.25em; cursor: pointer;
+            color: #bbb; padding: 10px; transition: 0.3s;
+        }
+
+        button:hover:not(:disabled) { color: var(--text-main); }
+        button:disabled { opacity: 0.1; cursor: default; }
+
+        .hint { margin-top: 20px; font-size: 0.7rem; color: #ccc; letter-spacing: 0.2em; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <span class="category-label">Select Category</span>
+        <select id="categoryFilter" onchange="filterByCategory()">
+            <option value="Nature">Nature (自然)</option>
+            <option value="Emotions">Emotions (感情)</option>
+            <option value="Fruits">Fruits (果物)</option>
+            <option value="Daily Nouns">Daily Nouns (名詞)</option>
+	    <option value="Action Verbs">Action Verbs (動詞)</option>
+	    <option value="Adjectives">Adjectives (形容詞)</option>
+	    <option value="Places">Places (場所)</option>
+	    <option value="Body Parts">Body Parts (体)</option>
+	    <option value="Family">Family (家族)</option>
+	    <option value="Food & Drink">Food & Drink (食べ物と飲み物)</option>
+    	    <option value="Animals">Animals (動物)</option>
+	    <option value="Vegetables">Vegetables (野菜)</option>   
+	    <option value="Transportation">Transportation (交通)</option>   
+	    <option value="Clothing">Clothing (服)</option>
+	    <option value="Colours">Colours (色)</option>
+        
+
+        </select>
+    </div>
+
+    <div class="flashcard-container" onclick="flipCard()">
+        <div class="flashcard-inner" id="cardInner">
+            <div class="card-front">
+                <div class="hiragana" id="hiragana"></div>
+                <div class="romaji" id="romaji"></div>
+                <div class="pronunciation" id="pron"></div>
+                <div class="divider"></div>
+                <div class="meaning" id="meaning"></div>
+                <div class="kanji" id="kanji"></div>
+            </div>
+            <div class="card-back">
+                <img id="cardImage" src="" alt="Illustration">
+            </div>
+        </div>
+    </div>
+
+    <p class="hint">TAP TO REVEAL</p>
+
+    <div class="nav-buttons">
+        <button id="prevBtn" onclick="prevWord(event)">Previous</button>
+        <button id="nextBtn" onclick="nextWord(event)">Next</button>
+    </div>
+
+    <script>
+        const dictionary = [
+            // NATURE
+            { category: "Nature", hiragana: "さくら", kanji: "桜", romaji: "sakura", pron: "[sah-koo-rah]", meaning: "Cherry Blossom", img: "https://i.pinimg.com/736x/09/15/8d/09158d6ba0fcf32fe88fcd02094cce09.jpg" },
+            { category: "Nature", hiragana: "もみじ", kanji: "紅葉", romaji: "momiji", pron: "[mo-mee-jee]", meaning: "Autumn Leaves", img: "https://i.pinimg.com/736x/e0/8d/de/e08dde6ea836c72b9f381cb016a10c10.jpg" },
+            { category: "Nature", hiragana: "うみ", kanji: "海", romaji: "umi", pron: "[oo-mee]", meaning: "Sea / Ocean", img: "https://i.pinimg.com/736x/64/42/7f/64427f994464e790fb6011f2ab479798.jpg" },
+            { category: "Nature", hiragana: "やま", kanji: "山", romaji: "yama", pron: "[yah-mah]", meaning: "Mountain", img: "https://i.pinimg.com/736x/93/55/e3/9355e348ab4400cea125e0499c1c8873.jpg" },
+            { category: "Nature", hiragana: "かわ", kanji: "川", romaji: "kawa", pron: "[kah-wah]", meaning: "River", img: "https://i.pinimg.com/736x/0f/0f/c2/0f0fc2a8cdab0deda98124e82ba89c61.jpg" },
+            { category: "Nature", hiragana: "そら", kanji: "空", romaji: "sora", pron: "[soh-rah]", meaning: "Sky", img: "https://i.pinimg.com/1200x/39/26/bd/3926bdcfa466772954b6327217163b4f.jpg" },
+            { category: "Nature", hiragana: "つき", kanji: "月", romaji: "tsuki", pron: "[tsu-kee]", meaning: "Moon", img: "https://i.pinimg.com/1200x/3b/5a/e7/3b5ae74453c6a2e8f8e7e9ab21e8bbb8.jpg" },
+            { category: "Nature", hiragana: "たいよう", kanji: "太陽", romaji: "taiyou", pron: "[tie-yoh]", meaning: "Sun", img: "https://i.pinimg.com/736x/00/c9/c2/00c9c2e19d2ffad801b71a24408e0901.jpg" },
+            { category: "Nature", hiragana: "あめ", kanji: "雨", romaji: "ame", pron: "[ah-meh]", meaning: "Rain", img: "https://i.pinimg.com/736x/ce/10/46/ce1046598cade12cd22d1c97652f8922.jpg" },
+            { category: "Nature", hiragana: "ゆき", kanji: "雪", romaji: "yuki", pron: "[yoo-kee]", meaning: "Snow", img: "https://i.pinimg.com/736x/7a/03/3c/7a033cacb6c8e766897446b3f490e088.jpg" },
+            { category: "Nature", hiragana: "もり", kanji: "森", romaji: "mori", pron: "[mo-ree]", meaning: "Forest", img: "https://i.pinimg.com/736x/4e/56/9c/4e569ce04845a456d02ac7541c551d7e.jpg" },
+            { category: "Nature", hiragana: "はな", kanji: "花", romaji: "hana", pron: "[hah-nah]", meaning: "Flower", img: "https://i.pinimg.com/736x/c3/ed/14/c3ed14cdbbb9dca259b1f1c1cc042372.jpg" },
+            { category: "Nature", hiragana: "ほし", kanji: "星", romaji: "hoshi", pron: "[ho-shee]", meaning: "Star", img: "https://i.pinimg.com/736x/27/00/c9/2700c96804697221994d8b0d939ede0f.jpg" },
+            { category: "Nature", hiragana: "かぜ", kanji: "風", romaji: "kaze", pron: "[kah-zeh]", meaning: "Wind", img: "https://i.pinimg.com/736x/44/8a/dc/448adc5447d5ef6daf1a8e67e871c075.jpg" },
+            { category: "Nature", hiragana: "くも", kanji: "雲", romaji: "kumo", pron: "[koo-mo]", meaning: "Cloud", img: "https://i.pinimg.com/1200x/41/ab/49/41ab491a31af230d2f13fe78d7081909.jpg" },
+            { category: "Nature", hiragana: "いし", kanji: "石", romaji: "ishi", pron: "[ee-shee]", meaning: "Stone / Rock", img: "https://i.pinimg.com/736x/4d/88/83/4d88833749472700e66fba785177782f.jpg" },
+            { category: "Nature", hiragana: "にじ", kanji: "虹", romaji: "niji", pron: "[nee-jee]", meaning: "Rainbow", img: "https://i.pinimg.com/736x/c6/22/47/c622471c46c305ac565f92d27c05aef7.jpg" },
+            { category: "Nature", hiragana: "ひかり", kanji: "光", romaji: "hikari", pron: "[hee-kah-ree]", meaning: "Light", img: "https://i.pinimg.com/1200x/c4/b8/37/c4b837f3e7f126eef058fa63c317261c.jpg" },
+            { category: "Nature", hiragana: "たき", kanji: "滝", romaji: "taki", pron: "[tah-kee]", meaning: "Waterfall", img: "https://i.pinimg.com/736x/50/70/e8/5070e830fc5cc03858368e25b3acbf2d.jpg" },
+            { category: "Nature", hiragana: "ちきゅう", kanji: "地球", romaji: "chikyuu", pron: "[chee-kyuu]", meaning: "Earth / Planet", img: "https://i.pinimg.com/1200x/86/1b/7c/861b7cacae82e1194a68e877e5975b9a.jpg" },
+
+            // EMOTIONS
+            { category: "Emotions", hiragana: "わらう", kanji: "笑う", romaji: "warau", pron: "[wah-rah-oo]", meaning: "To Laugh", img: "https://i.pinimg.com/736x/a8/48/3d/a8483db69269e48ca3f09af5524c3c92.jpg" },
+            { category: "Emotions", hiragana: "なぐ", kanji: "泣く", romaji: "naku", pron: "[nah-koo]", meaning: "To Cry", img: "https://i.pinimg.com/1200x/f0/d2/47/f0d247e8dbc0e528602b8b46ce51d8b9.jpg" },
+            { category: "Emotions", hiragana: "すき", kanji: "好き", romaji: "suki", pron: "[soo-kee]", meaning: "To Like", img: "https://i.pinimg.com/1200x/55/3d/3b/553d3b124bbfaab42d97c6f97dc46887.jpg" },
+            { category: "Emotions", hiragana: "しあわせ", kanji: "幸せ", romaji: "shiawase", pron: "[she-ah-wah-seh]", meaning: "Happiness", img: "https://i.pinimg.com/736x/be/ee/ac/beeeac7e8dcd165f0afb331cd8b26bce.jpg" },
+            { category: "Emotions", hiragana: "かなしい", kanji: "悲しい", romaji: "kanashii", pron: "[kah-nah-shee]", meaning: "Sad", img: "https://i.pinimg.com/1200x/c6/06/24/c60624afc3105c0e321b9d106cc9fe9b.jpg" },
+            { category: "Emotions", hiragana: "たのしい", kanji: "楽しい", romaji: "tanoshii", pron: "[tah-no-shee]", meaning: "Fun", img: "https://i.pinimg.com/736x/f5/28/7f/f5287fa61dcec328b3bf821537a9e441.jpg" },
+            { category: "Emotions", hiragana: "おこる", kanji: "怒る", romaji: "okoru", pron: "[oh-ko-roo]", meaning: "To be Angry", img: "https://i.pinimg.com/736x/0e/06/74/0e0674c995fd5a2bfa29278e1c810626.jpg" },
+            { category: "Emotions", hiragana: "おどろく", kanji: "驚く", romaji: "odoroku", pron: "[oh-doh-roh-koo]", meaning: "To be Surprised", img: "https://i.pinimg.com/1200x/fa/8f/00/fa8f001d606bff20f0d0c60004394e5c.jpg" },
+            { category: "Emotions", hiragana: "ねむい", kanji: "眠い", romaji: "nemui", pron: "[neh-moo-ee]", meaning: "Sleepy", img: "https://i.pinimg.com/1200x/7c/e6/57/7ce657d8ae21be7e6fbafbb6e41975e1.jpg" },
+            { category: "Emotions", hiragana: "つかれる", kanji: "疲れる", romaji: "tsukareru", pron: "[tsu-kah-reh-roo]", meaning: "Tired", img: "https://i.pinimg.com/736x/14/69/08/14690815622bd3d499e54e42e671265e.jpg" },
+            { category: "Emotions", hiragana: "しんぱい", kanji: "心配", romaji: "shinpai", pron: "[sheen-pie]", meaning: "Worried", img: "https://i.pinimg.com/736x/10/5e/a9/105ea97e0a3c854328118453f2c09384.jpg" },
+            { category: "Emotions", hiragana: "はじらう", kanji: "恥じらう", romaji: "hajirau", pron: "[hah-jee-rah-oo]", meaning: "Shy / Blushing", img: "https://i.pinimg.com/736x/a9/81/96/a98196915d9431176a300796fb51a4c6.jpg" },
+            { category: "Emotions", hiragana: "わくわく", kanji: "沸く沸く", romaji: "wakuwaku", pron: "[wah-koo-wah-koo]", meaning: "Excited", img: "https://i.pinimg.com/1200x/f4/d2/1e/f4d21ed2c8ae53d4e23cb4cad6ed8286.jpg" },
+            { category: "Emotions", hiragana: "あんしん", kanji: "安心", romaji: "anshin", pron: "[ahn-sheen]", meaning: "Relieved", img: "https://i.pinimg.com/736x/be/ff/f3/befff396ad1c0bc9b6a1637e8a946d36.jpg" },
+            { category: "Emotions", hiragana: "なつかしい", kanji: "懐かしい", romaji: "natsukashii", pron: "[nah-tsu-kah-shee]", meaning: "Nostalgic", img: "https://i.pinimg.com/1200x/84/58/ab/8458ab02e208bfcaaddc84d50bf5bb3f.jpg" },
+            { category: "Emotions", hiragana: "こわい", kanji: "怖い", romaji: "kowai", pron: "[koh-wai]", meaning: "Scared", img: "https://i.pinimg.com/736x/64/a0/b0/64a0b05681c657a815095fb71711d924.jpg" },
+            { category: "Emotions", hiragana: "さびしい", kanji: "寂しい", romaji: "sabishii", pron: "[sah-bee-shee]", meaning: "Lonely", img: "https://i.pinimg.com/1200x/12/bb/82/12bb82acce3324fd8360579e5b02bc59.jpg" },
+            { category: "Emotions", hiragana: "うらやましい", kanji: "羨ましい", romaji: "urayamashii", pron: "[oo-rah-yah-mah-shee]", meaning: "Envious / Jealous", img: "https://i.pinimg.com/736x/0e/0d/86/0e0d86773266c379c43f06de915d6818.jpg" },
+            { category: "Emotions", hiragana: "おだやか", kanji: "穏やか", romaji: "odayaka", pron: "[oh-dah-yah-kah]", meaning: "Calm / Peaceful", img: "https://i.pinimg.com/736x/d2/ae/c0/d2aec04b62d4e7f6c700dce9a418232b.jpg" },
+            { category: "Emotions", hiragana: "ゆううつ", kanji: "憂鬱", romaji: "yuuutsu", pron: "[yoo-oo-tsu]", meaning: "Melancholy / Gloomy", img: "https://i.pinimg.com/736x/be/d9/d8/bed9d85998289d411a346dc6c148038e.jpg" },
+            
+            // FRUITS
+            { category: "Fruits", hiragana: "りんご", kanji: "林檎", romaji: "ringo", pron: "[reen-go]", meaning: "Apple", img: "https://i.pinimg.com/736x/d0/a4/a5/d0a4a56be7387ae017aebe108717c7ec.jpg" },
+            { category: "Fruits", hiragana: "いちご", kanji: "苺", romaji: "ichigo", pron: "[ee-chee-go]", meaning: "Strawberry", img: "https://i.pinimg.com/1200x/5c/a8/b9/5ca8b90c833a79ce2984b3df279f451d.jpg" },
+            { category: "Fruits", hiragana: "もも", kanji: "桃", romaji: "momo", pron: "[mo-mo]", meaning: "Peach", img: "https://i.pinimg.com/736x/04/69/d4/0469d430aa110974ccd520372b6acb19.jpg" },
+            { category: "Fruits", hiragana: "ぶどう", kanji: "葡萄", romaji: "budou", pron: "[boo-doh]", meaning: "Grapes", img: "https://i.pinimg.com/736x/58/ed/80/58ed80726566c2d9a8044c98f83f7e04.jpg" },
+            { category: "Fruits", hiragana: "みかん", kanji: "蜜柑", romaji: "mikan", pron: "[mee-kahn]", meaning: "Mandarin Orange", img: "https://i.pinimg.com/736x/09/6e/85/096e8550344a550a08507d6c7872159e.jpg" },
+            { category: "Fruits", hiragana: "すいか", kanji: "西瓜", romaji: "suika", pron: "[sui-kah]", meaning: "Watermelon", img: "https://i.pinimg.com/736x/2d/27/eb/2d27ebc7d1aa2184640684b3f6e9ea61.jpg" },
+            { category: "Fruits", hiragana: "めろん", kanji: "甜瓜", romaji: "meron", pron: "[meh-rohn]", meaning: "Melon", img: "https://i.pinimg.com/1200x/95/9e/6d/959e6d1b9cc347620be12642fa38aedf.jpg" },
+            { category: "Fruits", hiragana: "ようなし", kanji: "洋梨", romaji: "younashi", pron: "[yo-nah-shee]", meaning: "Pear", img: "https://i.pinimg.com/736x/ac/3d/90/ac3d908aa668f7a5b33fc41abbb6fd00.jpg" },
+            { category: "Fruits", hiragana: "さくらんぼ", kanji: "桜桃", romaji: "sakuranbo", pron: "[sah-koo-rahn-bo]", meaning: "Cherry", img: "https://i.pinimg.com/736x/ac/76/49/ac76496adee7bc61071fb52cf28a5833.jpg" },
+            { category: "Fruits", hiragana: "ゆず", kanji: "柚子", romaji: "yuzu", pron: "[yoo-zoo]", meaning: "Yuzu Citrus", img: "https://i.pinimg.com/736x/8e/51/2f/8e512fb3aadf10e7e93a304f25b7247e.jpg" },
+            { category: "Fruits", hiragana: "かき", kanji: "柿", romaji: "kaki", pron: "[kah-kee]", meaning: "Persimmon", img: "https://i.pinimg.com/736x/95/8a/b7/958ab718bc903248109af3bbfde687cb.jpg" },
+            { category: "Fruits", hiragana: "れもん", kanji: "檸檬", romaji: "remon", pron: "[reh-mohn]", meaning: "Lemon", img: "https://i.pinimg.com/736x/85/54/3b/85543b87359ee0f7bd3eda61cfc3adf8.jpg" },
+            { category: "Fruits", hiragana: "くり", kanji: "栗", romaji: "kuri", pron: "[koo-ree]", meaning: "Chestnut", img: "https://i.pinimg.com/736x/92/17/7a/92177a4f33fcb241cd5b5e2f90d2673a.jpg" },
+            { category: "Fruits", hiragana: "いちじく", kanji: "無花果", romaji: "ichijiku", pron: "[ee-chee-jee-koo]", meaning: "Fig", img: "https://i.pinimg.com/736x/d4/ef/e7/d4efe71b2f3cb97a58d408e0f6960560.jpg" },
+            { category: "Fruits", hiragana: "あんず", kanji: "杏", romaji: "anzu", pron: "[ahn-zoo]", meaning: "Apricot", img: "https://i.pinimg.com/1200x/52/f0/36/52f036a2cef9ebadb3baa1d8a6a67fa2.jpg" },
+            { category: "Fruits", hiragana: "うめ", kanji: "梅", romaji: "ume", pron: "[oo-meh]", meaning: "Plum", img: "https://i.pinimg.com/736x/af/8a/de/af8ade03c156422a8cd5e5d86f10e207.jpg" },
+            { category: "Fruits", hiragana: "ぱいなっぷる", kanji: "鳳梨", romaji: "painappuru", pron: "[pie-nap-poo-roo]", meaning: "Pineapple", img: "https://i.pinimg.com/736x/94/a2/ee/94a2ee3706c54325ee69603e97642d39.jpg" },
+            { category: "Fruits", hiragana: "ばなな", kanji: "甘蕉", romaji: "banana", pron: "[bah-nah-nah]", meaning: "Banana", img: "https://i.pinimg.com/736x/f2/51/e1/f251e1c8c2b33a1df5698f79dbe3dbad.jpg" },
+            { category: "Fruits", hiragana: "きうい", kanji: "弥猴桃", romaji: "kiui", pron: "[kee-oo-ee]", meaning: "Kiwi", img: "https://i.pinimg.com/736x/05/ca/f2/05caf29ebc5641ebbb3afa4cb15c12bd.jpg" },
+            { category: "Fruits", hiragana: "ざくろ", kanji: "石榴", romaji: "zakuro", pron: "[zah-koo-roh]", meaning: "Pomegranate", img: "https://i.pinimg.com/736x/b1/1c/39/b11c398dbbda948dc515b5601b0221cc.jpg" },
+
+            // DAILY NOUNS
+            { category: "Daily Nouns", hiragana: "ほん", kanji: "本", romaji: "hon", pron: "[hohn]", meaning: "Book", img: "https://i.pinimg.com/1200x/de/cd/83/decd8322a77824cb4e49e60691d2e413.jpg" },
+            { category: "Daily Nouns", hiragana: "かばん", kanji: "鞄", romaji: "kaban", pron: "[kah-bahn]", meaning: "Bag / Backpack", img: "https://i.pinimg.com/736x/1c/b3/c6/1cb3c61ad048c31280bf5eedeb0bfd7e.jpg" },
+            { category: "Daily Nouns", hiragana: "くつ", kanji: "靴", romaji: "kutsu", pron: "[koo-tsu]", meaning: "Shoes", img: "https://i.pinimg.com/1200x/cc/af/96/ccaf96f4e8fdbd5e4cf5af911ee48530.jpg" },
+            { category: "Daily Nouns", hiragana: "とけい", kanji: "時計", romaji: "tokei", pron: "[toh-kay]", meaning: "Clock / Watch", img: "https://i.pinimg.com/736x/e7/b8/fe/e7b8fe1f537594ed41a5d9e6f5b8f844.jpg" },
+            { category: "Daily Nouns", hiragana: "めがね", kanji: "眼鏡", romaji: "megane", pron: "[meh-gah-neh]", meaning: "Glasses", img: "https://i.pinimg.com/736x/b2/f4/c7/b2f4c754d1d6b39315db1a2984d29731.jpg" },
+            { category: "Daily Nouns", hiragana: "かさ", kanji: "傘", romaji: "kasa", pron: "[kah-sah]", meaning: "Umbrella", img: "https://i.pinimg.com/736x/a5/68/f6/a568f62f8d14140ca926e92a5d9b96e6.jpg" },
+            { category: "Daily Nouns", hiragana: "かぎ", kanji: "鍵", romaji: "kagi", pron: "[kah-ghee]", meaning: "Key", img: "https://i.pinimg.com/1200x/49/8f/e0/498fe06810e3f95d1cbf350c15d0c78c.jpg" },
+            { category: "Daily Nouns", hiragana: "くるま", kanji: "車", romaji: "kuruma", pron: "[koo-roo-mah]", meaning: "Car", img: "https://i.pinimg.com/1200x/c3/92/f1/c392f10d34996bae192ed056f5783eb7.jpg" },
+            { category: "Daily Nouns", hiragana: "つくえ", kanji: "机", romaji: "tsukue", pron: "[tsu-koo-eh]", meaning: "Desk", img: "https://i.pinimg.com/736x/a1/6f/bc/a16fbc0e3c9c75cb9d2781e401bd65de.jpg" },
+            { category: "Daily Nouns", hiragana: "いす", kanji: "椅子", romaji: "isu", pron: "[ee-soo]", meaning: "Chair", img: "https://i.pinimg.com/1200x/33/22/7f/33227f5ab38526ff5f3534f28b4fbbb4.jpg" },
+            { category: "Daily Nouns", hiragana: "でんわ", kanji: "電話", romaji: "denwa", pron: "[den-wah]", meaning: "Telephone", img: "https://i.pinimg.com/1200x/a4/5d/9d/a45d9db856e804e2d4f8a5c742b2e263.jpg" },
+            { category: "Daily Nouns", hiragana: "てがみ", kanji: "手紙", romaji: "tegami", pron: "[teh-gah-mee]", meaning: "Letter", img: "https://i.pinimg.com/736x/8e/de/bf/8edebfea61fa11e69af3634e913316c6.jpg" },
+            { category: "Daily Nouns", hiragana: "さいふ", kanji: "財布", romaji: "saifu", pron: "[sigh-foo]", meaning: "Wallet", img: "https://i.pinimg.com/736x/b1/24/1a/b1241ae4058a834dd21c5a6ee0c0e084.jpg" },
+            { category: "Daily Nouns", hiragana: "ふでばこ", kanji: "筆箱", romaji: "fudebako", pron: "[foo-deh-bah-ko]", meaning: "Pencil Case", img: "https://i.pinimg.com/736x/18/fb/07/18fb0799d35fea8775d5eb1f89740430.jpg" },
+            { category: "Daily Nouns", hiragana: "かがみ", kanji: "鏡", romaji: "kagami", pron: "[kah-gah-mee]", meaning: "Mirror", img: "https://i.pinimg.com/736x/0d/98/de/0d98defaf5d03f9d63fa20022f10d005.jpg" },
+            { category: "Daily Nouns", hiragana: "まど", kanji: "窓", romaji: "mado", pron: "[mah-doh]", meaning: "Window", img: "https://i.pinimg.com/736x/b3/f1/51/b3f1518d8eb6ab2e7549a49a5283f886.jpg" },
+            { category: "Daily Nouns", hiragana: "ぼうし", kanji: "帽子", romaji: "boushi", pron: "[boh-shee]", meaning: "Hat", img: "https://i.pinimg.com/736x/17/89/53/1789535ff43eed0971d0c22cb3429eec.jpg" },
+            { category: "Daily Nouns", hiragana: "しゃしん", kanji: "写真", romaji: "shashin", pron: "[shah-sheen]", meaning: "Photograph", img: "https://i.pinimg.com/1200x/90/5a/f0/905af0df297457093a3e4c117c797979.jpg" },
+            { category: "Daily Nouns", hiragana: "おべんとう", kanji: "お弁当", romaji: "obentou", pron: "[oh-ben-toh]", meaning: "Lunch Box", img: "https://i.pinimg.com/736x/00/9f/ee/009feebbab6aa58ba5ae57c0df39847c.jpg" },
+            { category: "Daily Nouns", hiragana: "ふうせん", kanji: "風船", romaji: "fuusen", pron: "[foo-sen]", meaning: "Balloon", img: "https://i.pinimg.com/736x/52/f5/a7/52f5a73078771563d16a84ef930aa88e.jpg" },
+
+
+	     // ACTION VERBS
+	     { category: "Action Verbs", hiragana: "たべる", kanji: "食べる", romaji: "taberu", pron: "[tah-beh-roo]", meaning: "To Eat", img: "https://i.pinimg.com/736x/e7/14/fc/e714fcbba451e04d44841b73e2dc1186.jpg"},
+	     { category: "Action Verbs", hiragana: "のむ", kanji: "飲む", romaji: "nomu", pron: "[no-moo]", meaning: "To Drink", img: "https://i.pinimg.com/736x/c6/c3/00/c6c3000e0619a6398707db682dab74d7.jpg" },
+	     { category: "Action Verbs", hiragana: "いく", kanji: "行く", romaji: "iku", pron: "[ee-koo]", meaning: "To Go", img: "https://i.pinimg.com/736x/30/88/8a/30888aa4663f456e3b988eac369a7e76.jpg" },
+	     { category: "Action Verbs", hiragana: "くる", kanji: "来る", romaji: "kuru", pron: "[koo-roo]", meaning: "To Come", img: "https://i.pinimg.com/1200x/fd/bf/fa/fdbffab6f0d28c9767190046522acc9a.jpg" },
+	     { category: "Action Verbs", hiragana: "かえる", kanji: "帰る", romaji: "kaeru", pron: "[kah-eh-roo]", meaning: "To Return Home", img: "https://i.pinimg.com/736x/34/dd/ce/34ddce4c228fa09f50642e3f5da4df19.jpg" },
+	     { category: "Action Verbs", hiragana: "みる", kanji: "見る", romaji: "miru", pron: "[mee-roo]", meaning: "To See / Watch", img: "https://i.pinimg.com/736x/0f/68/24/0f6824a26597cc9dc5848f49d78d831e.jpg" },
+	     { category: "Action Verbs", hiragana: "きく", kanji: "聞く", romaji: "kiku", pron: "[kee-koo]", meaning: "To Listen / Hear", img: "https://i.pinimg.com/736x/bd/a3/4e/bda34ef73d2afb2a437145d5f99b2362.jpg" },
+	     { category: "Action Verbs", hiragana: "はなす", kanji: "話す", romaji: "hanasu", pron: "[hah-nah-soo]", meaning: "To Speak", img: "https://i.pinimg.com/736x/2f/00/98/2f00985e1cf84c61a4606f518f270e33.jpg" },
+	     { category: "Action Verbs", hiragana: "よむ", kanji: "読む", romaji: "yomu", pron: "[yo-moo]", meaning: "To Read", img: "https://i.pinimg.com/736x/6c/60/f8/6c60f887c522fd9565ab4a8f820a4141.jpg" },
+	     { category: "Action Verbs", hiragana: "かく", kanji: "書く", romaji: "kaku", pron: "[kah-koo]", meaning: "To Write", img: "https://i.pinimg.com/736x/e5/ab/e2/e5abe2fcc158d00e77f29899817be0b1.jpg" },
+	     { category: "Action Verbs", hiragana: "ねる", kanji: "寝る", romaji: "neru", pron: "[neh-roo]", meaning: "To Sleep", img: "https://i.pinimg.com/736x/28/d6/ad/28d6add9ebc749960db3083da531b2c1.jpg" },
+	     { category: "Action Verbs", hiragana: "おきる", kanji: "起きる", romaji: "okiru", pron: "[oh-kee-roo]", meaning: "To Wake Up", img: "https://i.pinimg.com/736x/f8/65/51/f86551ea657748eb2d211b1f6aab7b31.jpg" },
+	     { category: "Action Verbs", hiragana: "かう", kanji: "買う", romaji: "kau", pron: "[kah-oo]", meaning: "To Buy", img: "https://i.pinimg.com/736x/73/7b/2d/737b2d4bdb72b8e3ea9e270fc41951fd.jpg" },
+	     { category: "Action Verbs", hiragana: "あるく", kanji: "歩く", romaji: "aruku", pron: "[ah-roo-koo]", meaning: "To Walk", img: "https://i.pinimg.com/736x/cb/21/35/cb213539171b84c1495b1a5094d6bf36.jpg" },
+	     { category: "Action Verbs", hiragana: "はしる", kanji: "走る", romaji: "hashiru", pron: "[hah-shee-roo]", meaning: "To Run", img: "https://i.pinimg.com/736x/6a/43/f5/6a43f53f17d118c4e152098462f88312.jpg" },
+	     { category: "Action Verbs", hiragana: "まつ", kanji: "待つ", romaji: "matsu", pron: "[mah-tsu]", meaning: "To Wait", img: "https://i.pinimg.com/736x/eb/b4/c4/ebb4c48656a152547c5e2b16d666df35.jpg" },
+	     { category: "Action Verbs", hiragana: "つくる", kanji: "作る", romaji: "tsukuru", pron: "[tsu-koo-roo]", meaning: "To Make", img: "https://i.pinimg.com/736x/b1/16/49/b116498a238f567aea4ba9b2129cc23a.jpg" },
+	     { category: "Action Verbs", hiragana: "あそぶ", kanji: "遊ぶ", romaji: "asobu", pron: "[ah-so-boo]", meaning: "To Play", img: "https://i.pinimg.com/736x/9f/34/ac/9f34acaf17493e40f559b85ab21f8100.jpg" },
+	     { category: "Action Verbs", hiragana: "あう", kanji: "会う", romaji: "au", pron: "[ah-oo]", meaning: "To Meet", img: "https://i.pinimg.com/736x/fc/df/e8/fcdfe8c7269e511556b2e77ca2b98580.jpg" },
+	     { category: "Action Verbs", hiragana: "すわる", kanji: "座る", romaji: "suwaru", pron: "[soo-wah-roo]", meaning: "To Sit", img: "https://i.pinimg.com/1200x/51/dd/6d/51dd6dbd2be5780b580cea3e445f7a54.jpg" },
+
+	     // ADJECTIVES
+	     { category: "Adjectives", hiragana: "おおきい", kanji: "大きい", romaji: "ookii", pron: "[oh-kee-ee]", meaning: "Big / Large", img: "https://i.pinimg.com/736x/9d/1e/3b/9d1e3b334e77a3c99d83a40efa78a98f.jpg" },
+	     { category: "Adjectives", hiragana: "ちいさい", kanji: "小さい", romaji: "chiisai", pron: "[chee-sigh]", meaning: "Small / Little", img: "https://i.pinimg.com/736x/9d/1e/3b/9d1e3b334e77a3c99d83a40efa78a98f.jpg" },
+	     { category: "Adjectives", hiragana: "たかい", kanji: "高い", romaji: "takai", pron: "[tah-kai]", meaning: "Expensive / Tall", img: "https://i.pinimg.com/736x/ba/7d/c9/ba7dc94a8ce6e038aa88b5a9495977da.jpg" },
+	     { category: "Adjectives", hiragana: "やすい", kanji: "安い", romaji: "yasui", pron: "[yah-soo-ee]", meaning: "Cheap / Inexpensive", img: "https://i.pinimg.com/736x/ba/7d/c9/ba7dc94a8ce6e038aa88b5a9495977da.jpg" },
+	     { category: "Adjectives", hiragana: "あたらしい", kanji: "新しい", romaji: "atarashii", pron: "[ah-tah-rah-shee]", meaning: "New / Fresh", img: "https://i.pinimg.com/736x/fc/25/ad/fc25ade9d560f4077a26245cac0a8e29.jpg" },
+	     { category: "Adjectives", hiragana: "ふるい", kanji: "古い", romaji: "furui", pron: "[foo-roo-ee]", meaning: "Old", img: "https://i.pinimg.com/736x/fc/25/ad/fc25ade9d560f4077a26245cac0a8e29.jpg" },
+	     { category: "Adjectives", hiragana: "いい", kanji: "良い", romaji: "ii", pron: "[ee-ee]", meaning: "Good / Nice", img: "https://i.pinimg.com/736x/b0/fe/1b/b0fe1b2d68ffd36f50d6e09ed9ad9996.jpg" },
+	     { category: "Adjectives", hiragana: "わるい", kanji: "悪い", romaji: "warui", pron: "[wah-roo-ee]", meaning: "Bad / Poor", img: "https://i.pinimg.com/736x/b0/fe/1b/b0fe1b2d68ffd36f50d6e09ed9ad9996.jpg" },
+	     { category: "Adjectives", hiragana: "あつい", kanji: "暑い", romaji: "atsui", pron: "[ah-tsu-ee]", meaning: "Hot (Weather)", img: "https://i.pinimg.com/736x/cf/08/d8/cf08d87106532cffecfddda6e338acf5.jpg" },
+	     { category: "Adjectives", hiragana: "さむい", kanji: "寒い", romaji: "samui", pron: "[sah-moo-ee]", meaning: "Cold (Weather)", img: "https://i.pinimg.com/736x/4f/71/74/4f71746e6bc429e1051faab2f4e86455.jpg" },
+   	     { category: "Adjectives", hiragana: "むずかしい", kanji: "難しい", romaji: "muzukashii", pron: "[moo-zoo-kah-shee]", meaning: "Difficult", img: "https://www.shutterstock.com/image-vector/opposites-concept-easy-difficult-word-260nw-1796170258.jpg" },
+	     { category: "Adjectives", hiragana: "やさしい", kanji: "易しい", romaji: "yasashii", pron: "[yah-sah-shee]", meaning: "Easy / Simple", img: "https://www.shutterstock.com/image-vector/opposites-concept-easy-difficult-word-260nw-1796170258.jpg" },
+	     { category: "Adjectives", hiragana: "とおい", kanji: "遠い", romaji: "tooi", pron: "[toh-oh-ee]", meaning: "Far / Distant", img: "https://i.pinimg.com/736x/57/f3/11/57f3112a785faf9ceef316cce3c16e37.jpg" },
+	     { category: "Adjectives", hiragana: "ちかい", kanji: "近い", romaji: "chikai", pron: "[chee-kai]", meaning: "Near / Close", img: "https://i.pinimg.com/736x/57/f3/11/57f3112a785faf9ceef316cce3c16e37.jpg" },
+	     { category: "Adjectives", hiragana: "おいしい", kanji: "美味しい", romaji: "oishii", pron: "[oh-ee-shee]", meaning: "Delicious", img: "https://i.pinimg.com/1200x/f7/05/c7/f705c77751910cec2c8a76312ebdc4c4.jpg" },
+	     { category: "Adjectives", hiragana: "おもしろい", kanji: "面白い", romaji: "omoshiroi", pron: "[oh-mo-shee-roy]", meaning: "Interesting / Funny", img: "https://i.pinimg.com/736x/ba/9e/a2/ba9ea2953bf89dffca21729e304302dc.jpg" },
+	     { category: "Adjectives", hiragana: "いそがしい", kanji: "忙しい", romaji: "isogashii", pron: "[ee-so-gah-shee]", meaning: "Busy", img: "https://i.pinimg.com/1200x/88/0f/6c/880f6c9c4f13171925239d62f2ecbfe9.jpg" },
+	     { category: "Adjectives", hiragana: "たのしい", kanji: "楽しい", romaji: "tanoshii", pron: "[tah-no-shee]", meaning: "Fun / Enjoyable", img: "https://happylittledoers.com/wp-content/uploads/2022/03/Happy-Little-Doers-Phonics-71.jpg" },
+	     { category: "Adjectives", hiragana: "しろい", kanji: "白い", romaji: "shiroi", pron: "[shee-roy]", meaning: "White", img: "https://i.pinimg.com/736x/21/d3/1d/21d31d1c15cea4677800bf806804327f.jpg" },
+	     { category: "Adjectives", hiragana: "くろい", kanji: "黒い", romaji: "kuroi", pron: "[koo-roy]", meaning: "Black", img: "https://i.pinimg.com/736x/62/1b/40/621b40842a5e0e941cc1470d65411aed.jpg" },
+
+
+   	     // PLACES / LOCATIONS 
+	     { category: "Places", hiragana: "ぎんこう", kanji: "銀行", romaji: "ginkou", pron: "[geen-koh]", meaning: "Bank", img: "https://i.pinimg.com/736x/ba/fa/30/bafa30bb0d1235dbce490c53b1faa4ff.jpg" },
+	     { category: "Places", hiragana: "えき", kanji: "駅", romaji: "eki", pron: "[eh-kee]", meaning: "Train Station", img: "https://i.pinimg.com/736x/ad/0b/ea/ad0beac88333b123d1bac1fc7d596724.jpg" },
+	     { category: "Places", hiragana: "びょういん", kanji: "病院", romaji: "byouin", pron: "[byoh-een]", meaning: "Hospital", img: "https://i.pinimg.com/736x/c0/26/0b/c0260be91a8fc2e95cd780f790500adb.jpg" },
+	     { category: "Places", hiragana: "こうえん", kanji: "公園", romaji: "kouen", pron: "[koh-en]", meaning: "Park", img: "https://i.pinimg.com/736x/ba/6b/00/ba6b00b76ceef07a9e9b4fd5f0a733b6.jpg" },
+	     { category: "Places", hiragana: "みせ", kanji: "店", romaji: "mise", pron: "[mee-seh]", meaning: "Shop / Store", img: "https://i.pinimg.com/736x/9c/06/c5/9c06c51f0eddff485735d6fd6298e74f.jpg" },
+	     { category: "Places", hiragana: "がっこう", kanji: "学校", romaji: "gakkou", pron: "[gahk-koh]", meaning: "School", img: "https://i.pinimg.com/736x/64/1d/80/641d8082e577e35fda2db30c8b9297fc.jpg" },
+	     { category: "Places", hiragana: "きっさてん", kanji: "喫茶店", romaji: "kissaten", pron: "[kees-sah-ten]", meaning: "Cafe", img: "https://i.pinimg.com/736x/48/20/cc/4820cc34fd32557d7e89565eeeadaea1.jpg" },
+	     { category: "Places", hiragana: "としょかん", kanji: "図書館", romaji: "toshokan", pron: "[toh-sho-kahn]", meaning: "Library", img: "https://i.pinimg.com/736x/59/2f/4f/592f4f64abfbf014af6ec082761d8940.jpg" },
+	     { category: "Places", hiragana: "ゆうびんきょく", kanji: "郵便局", romaji: "yuubinkyoku", pron: "[yoo-been-kyoh-koo]", meaning: "Post Office", img: "https://i.pinimg.com/736x/24/8f/27/248f277b8b2b4209c70b51223347dc19.jpg" },
+	     { category: "Places", hiragana: "えいがかん", kanji: "映画館", romaji: "eigakan", pron: "[ay-gah-kahn]", meaning: "Movie Theater", img: "https://i.pinimg.com/736x/16/b4/2f/16b42f98829edce822995d33eb3944f7.jpg" },
+	     { category: "Places", hiragana: "こんびに", kanji: "コンビニ", romaji: "konbini", pron: "[kohn-bee-nee]", meaning: "Convenience Store", img: "https://i.pinimg.com/1200x/f5/3c/92/f53c926f4983dd7316a70716ab815687.jpg" },
+	     { category: "Places", hiragana: "れすとらん", kanji: "レストラン", romaji: "resutoran", pron: "[rehs-toh-rahn]", meaning: "Restaurant", img: "https://i.pinimg.com/1200x/47/09/20/470920c1067ea83f63ea5ef00fb7164d.jpg" },
+	     { category: "Places", hiragana: "くうこう", kanji: "空港", romaji: "kuukou", pron: "[koo-koh]", meaning: "Airport", img: "https://i.pinimg.com/736x/a0/0a/c5/a00ac5885e3f867e548a9671ba33435f.jpg" },
+	     { category: "Places", hiragana: "かいしゃ", kanji: "会社", romaji: "kaisha", pron: "[kai-shah]", meaning: "Company / Office", img: "https://i.pinimg.com/736x/dd/63/b1/dd63b1ec7ae1fadbf3d7ebfe278f48c0.jpg" },
+	     { category: "Places", hiragana: "こうじょう", kanji: "工場", romaji: "koujou", pron: "[koh-joh]", meaning: "Factory", img: "https://i.pinimg.com/736x/bf/4a/4e/bf4a4eb92018bff5114c739113a83a6f.jpg" },
+	     { category: "Places", hiragana: "こうばん", kanji: "交番", romaji: "kouban", pron: "[koh-bahn]", meaning: "Police Box", img: "https://i.pinimg.com/1200x/7f/ae/24/7fae2484f8f2ee03d6b486880169f1dd.jpg" },
+	     { category: "Places", hiragana: "じんじゃ", kanji: "神社", romaji: "jinja", pron: "[jeen-jah]", meaning: "Shinto Shrine", img: "https://i.pinimg.com/736x/59/a6/e8/59a6e84757391027d4b1d66d3c3f9dcf.jpg" },
+	     { category: "Places", hiragana: "てら", kanji: "寺", romaji: "tera", pron: "[teh-rah]", meaning: "Buddhist Temple", img: "https://i.pinimg.com/1200x/77/47/5b/77475bf85649f7b2cb058d0f144ff4d3.jpg" },
+	     { category: "Places", hiragana: "たいしかん", kanji: "大使館", romaji: "taishikan", pron: "[tie-shee-kahn]", meaning: "Embassy", img: "https://yt3.googleusercontent.com/ytc/AIdro_kfHqg9A76tuXz-dgTD8rb7HqxOcxJkY8SNt5O5GAOvdw=s900-c-k-c0x00ffffff-no-rj" },
+	     { category: "Places", hiragana: "にわ", kanji: "庭", romaji: "niwa", pron: "[nee-wah]", meaning: "Garden / Yard", img: "https://i.pinimg.com/736x/ba/bf/9a/babf9a51afd3e2565bacf49cbce2e48a.jpg" },
+	
+	     /// BODY PARTS
+{ category: "Body Parts", hiragana: "め", kanji: "目", romaji: "me", pron: "[meh]", meaning: "Eye", img: "https://i.pinimg.com/736x/39/6a/38/396a3881e940c6c09c8f0c4b27881b55.jpg" },
+{ category: "Body Parts", hiragana: "みみ", kanji: "耳", romaji: "mimi", pron: "[mee-mee]", meaning: "Ear", img: "https://i.pinimg.com/736x/31/4e/4c/314e4c313ed962315e20009bbd9276dd.jpg" },
+{ category: "Body Parts", hiragana: "はな", kanji: "鼻", romaji: "hana", pron: "[hah-nah]", meaning: "Nose", img: "https://i.pinimg.com/1200x/71/96/f2/7196f2a4179a673fc1cbbcd34ef1e560.jpg" },
+{ category: "Body Parts", hiragana: "くち", kanji: "口", romaji: "kuchi", pron: "[koo-chee]", meaning: "Mouth", img: "https://i.pinimg.com/1200x/f6/16/a4/f616a486a9eb08200732179b796f2343.jpg" },
+{ category: "Body Parts", hiragana: "て", kanji: "手", romaji: "te", pron: "[teh]", meaning: "Hand", img: "https://i.pinimg.com/736x/12/00/72/1200720bb0eb7e3e83fba7559e703bb8.jpg" },
+{ category: "Body Parts", hiragana: "あし", kanji: "足", romaji: "ashi", pron: "[ah-shee]", meaning: "Leg / Foot", img: "https://i.pinimg.com/1200x/54/42/91/54429165cc505befbb82c2f8fa69334f.jpg" },
+{ category: "Body Parts", hiragana: "あたま", kanji: "頭", romaji: "atama", pron: "[ah-tah-mah]", meaning: "Head", img: "https://i.pinimg.com/736x/87/ce/59/87ce59ba415fb471b1844e1838c97e2e.jpg" },
+{ category: "Body Parts", hiragana: "かお", kanji: "顔", romaji: "kao", pron: "[kah-oh]", meaning: "Face", img: "https://i.pinimg.com/1200x/b2/62/35/b26235f9a0ffaaa38d58cdd900571a8b.jpg" },
+{ category: "Body Parts", hiragana: "ゆび", kanji: "指", romaji: "yubi", pron: "[yoo-bee]", meaning: "Finger / Toe", img: "https://i.pinimg.com/736x/30/60/d2/3060d20c027f9f6807e54627c16699f7.jpg" },
+{ category: "Body Parts", hiragana: "からだ", kanji: "体", romaji: "karada", pron: "[kah-rah-dah]", meaning: "Body", img: "https://i.pinimg.com/736x/3b/47/8a/3b478a89c4f6552390f29dc91c03f219.jpg" },
+{ category: "Body Parts", hiragana: "くび", kanji: "首", romaji: "kubi", pron: "[koo-bee]", meaning: "Neck", img: "https://i.pinimg.com/736x/f3/e0/e8/f3e0e86b3bc5bcafa10a36e37d1aa6f8.jpg" },
+{ category: "Body Parts", hiragana: "かた", kanji: "肩", romaji: "kata", pron: "[kah-tah]", meaning: "Shoulder", img: "https://i.pinimg.com/736x/47/7c/19/477c19e889698ccdd47052312819c230.jpg" },
+{ category: "Body Parts", hiragana: "むね", kanji: "胸", romaji: "mune", pron: "[moo-neh]", meaning: "Chest", img: "https://i.pinimg.com/736x/b0/70/3e/b0703eb5a78b95e824a157923faa1d2a.jpg" },
+{ category: "Body Parts", hiragana: "おなか", kanji: "お腹", romaji: "onaka", pron: "[oh-nah-kah]", meaning: "Stomach / Belly", img: "https://i.pinimg.com/736x/7d/f7/60/7df7602b9926782e0f0d85c6f4beffce.jpg" },
+{ category: "Body Parts", hiragana: "せなか", kanji: "背中", romaji: "senaka", pron: "[seh-nah-kah]", meaning: "Back", img: "https://i.pinimg.com/736x/6b/b3/e1/6bb3e17ed531423f1ce78b27eb6a4bcd.jpg" },
+{ category: "Body Parts", hiragana: "うで", kanji: "腕", romaji: "ude", pron: "[oo-deh]", meaning: "Arm", img: "https://i.pinimg.com/736x/df/d7/bb/dfd7bb742c9bd51da92610ef18da430b.jpg" },
+{ category: "Body Parts", hiragana: "こし", kanji: "腰", romaji: "koshi", pron: "[koh-shee]", meaning: "Waist / Lower Back", img: "https://i.pinimg.com/1200x/67/de/5b/67de5bbc32a909adb82d181563bc39e7.jpg" },
+{ category: "Body Parts", hiragana: "は", kanji: "歯", romaji: "ha", pron: "[hah]", meaning: "Tooth", img: "https://i.pinimg.com/736x/70/19/cd/7019cdf52c423fdbd77daaceccdc2923.jpg" },
+{ category: "Body Parts", hiragana: "しんぞう", kanji: "心臓", romaji: "shinzou", pron: "[sheen-zoh]", meaning: "Heart (Organ)", img: "https://i.pinimg.com/736x/8e/e2/53/8ee253cb4b953904fd7cd50ee2c9d989.jpg" },
+{ category: "Body Parts", hiragana: "かみ", kanji: "髪", romaji: "kami", pron: "[kah-mee]", meaning: "Hair", img: "https://i.pinimg.com/736x/57/af/84/57af840326c04cbbf7e37ca2016bb768.jpg" },
+
+
+	     // FAMILY MEMBERS
+	     { category: "Family", hiragana: "かぞく", kanji: "家族", romaji: "kazoku", pron: "[kah-zoh-koo]", meaning: "Family", img: "https://images.stockcake.com/public/e/8/9/e896defb-34f1-4caa-bc84-b19954195a8c_large/family-dinner-joy-stockcake.jpg" },
+	     { category: "Family", hiragana: "りょうしん", kanji: "両親", romaji: "ryoushin", pron: "[ryoh-sheen]", meaning: "Parents", img: "https://i.pinimg.com/736x/29/c3/89/29c38917726c4795fb797cdf151d9fd3.jpg" },
+	     { category: "Family", hiragana: "ちち", kanji: "父", romaji: "chichi", pron: "[chee-chee]", meaning: "Father (Own)", img: "https://i.pinimg.com/736x/e8/20/fa/e820fa6127f4cb582f238763849840e6.jpg" },
+	     { category: "Family", hiragana: "はは", kanji: "母", romaji: "haha", pron: "[hah-hah]", meaning: "Mother (Own)", img: "https://i.pinimg.com/736x/e5/6d/27/e56d273749845aa3e189bd3e76c7a468.jpg" },
+	     { category: "Family", hiragana: "おとうさん", kanji: "お父さん", romaji: "otousan", pron: "[oh-toh-sahn]", meaning: "Father (Polite)", img: "https://i.pinimg.com/736x/6f/c1/d2/6fc1d27be55214fc4f0db59bc01cf160.jpg" },
+	     { category: "Family", hiragana: "おかあさん", kanji: "お母さん", romaji: "okaasan", pron: "[oh-kah-sahn]", meaning: "Mother (Polite)", img: "https://i.pinimg.com/1200x/18/36/e9/1836e94cd58b07fdb9084192133e127d.jpg" },
+	     { category: "Family", hiragana: "きょうだい", kanji: "兄弟", romaji: "kyoudai", pron: "[kyoh-die]", meaning: "Siblings", img: "https://i.pinimg.com/736x/e1/b5/10/e1b51019fbad32252d8ecc3fc71720ac.jpg" },
+	     { category: "Family", hiragana: "あに", kanji: "兄", romaji: "ani", pron: "[ah-nee]", meaning: "Older Brother (Own)", img: "https://i.pinimg.com/1200x/81/2a/c6/812ac670a08190a8c3b9351674a21f8d.jpg" },
+	     { category: "Family", hiragana: "あね", kanji: "姉", romaji: "ane", pron: "[ah-neh]", meaning: "Older Sister (Own)", img: "https://i.pinimg.com/736x/e4/05/29/e40529cc1d04d5d2f4888558634be702.jpg" },
+	     { category: "Family", hiragana: "おとうと", kanji: "弟", romaji: "otouto", pron: "[oh-toh-toh]", meaning: "Younger Brother", img: "https://i.pinimg.com/736x/57/c6/06/57c606fa9f86bbb12ac6e53a4a68a3c3.jpg" },
+	     { category: "Family", hiragana: "いもうと", kanji: "妹", romaji: "imouto", pron: "[ee-moh-toh]", meaning: "Younger Sister", img: "https://i.pinimg.com/736x/5f/65/de/5f65de1a4cfa8aaa7f818da1de7e9843.jpg" },
+	     { category: "Family", hiragana: "おじいさん", kanji: "お祖父さん", romaji: "ojiisan", pron: "[oh-jee-sahn]", meaning: "Grandfather", img: "https://i.pinimg.com/736x/a4/35/9c/a4359ca199cce63d56cd9b43ce4b1c02.jpg" },
+	     { category: "Family", hiragana: "おばあさん", kanji: "お祖母さん", romaji: "obaasan", pron: "[oh-bah-sahn]", meaning: "Grandmother", img: "https://i.pinimg.com/736x/9e/90/92/9e90922bf9ac417cc8e298dbc73cc8fa.jpg" },
+	     { category: "Family", hiragana: "おっと / しゅじん", kanji: "夫 / 主人", romaji: "otto / shujin", pron: "[oht-toh]", meaning: "Husband", img: "https://i.pinimg.com/736x/a8/10/2d/a8102d5319bbd43f2389908d98a6167e.jpg" },
+	     { category: "Family", hiragana: "つま / かない", kanji: "妻 / 家内", romaji: "tsuma / kanai", pron: "[tsu-mah]", meaning: "Wife", img: "https://i.pinimg.com/736x/a8/10/2d/a8102d5319bbd43f2389908d98a6167e.jpg" },
+	     { category: "Family", hiragana: "こども", kanji: "子供", romaji: "kodomo", pron: "[koh-doh-moh]", meaning: "Child / Children", img: "https://i.pinimg.com/736x/67/3d/d0/673dd05aff54800224003e3000229564.jpg" },
+	     { category: "Family", hiragana: "むすこ", kanji: "息子", romaji: "musuko", pron: "[moo-soo-koh]", meaning: "Son", img: "https://i.pinimg.com/1200x/a0/b9/61/a0b961cf9cfd1baf239b0a103aefd00c.jpg" },
+	     { category: "Family", hiragana: "むすめ", kanji: "娘", romaji: "musume", pron: "[moo-soo-meh]", meaning: "Daughter", img: "https://i.pinimg.com/736x/be/11/ef/be11ef193676f361325a2984c10acb40.jpg" },
+	     { category: "Family", hiragana: "おじ", kanji: "叔父", romaji: "oji", pron: "[oh-jee]", meaning: "Uncle", img: "https://i.pinimg.com/736x/cc/43/79/cc437932910214cc49c8f8848cf9cfcd.jpg" },
+	     { category: "Family", hiragana: "おば", kanji: "叔母", romaji: "oba", pron: "[oh-bah]", meaning: "Aunt", img: "https://i.pinimg.com/736x/5a/5d/5b/5a5d5b546a60ac8f76dc95e681985ce8.jpg" },
+
+
+	     // FOOD & DRINK (20 Words)
+	     { category: "Food & Drink", hiragana: "ごはん", kanji: "ご飯", romaji: "gohan", pron: "[go-hahn]", meaning: "Rice / Meal", img: "https://i.pinimg.com/736x/79/fd/5f/79fd5f972217be6f0518da778c1dd10c.jpg" },
+	     { category: "Food & Drink", hiragana: "みず", kanji: "水", romaji: "mizu", pron: "[mee-zoo]", meaning: "Water", img: "https://i.pinimg.com/1200x/44/a2/05/44a20587a992195589c894d82948a2ce.jpg" },
+	     { category: "Food & Drink", hiragana: "おちゃ", kanji: "お茶", romaji: "ocha", pron: "[oh-chah]", meaning: "Green Tea", img: "https://i.pinimg.com/736x/0e/f9/4f/0ef94f5ce3ff1022bcf4dd3c5e6c8752.jpg" },
+             { category: "Food & Drink", hiragana: "ぎゅうにゅう", kanji: "牛乳", romaji: "gyuunyuu", pron: "[gyoo-nyoo]", meaning: "Milk", img: "https://i.pinimg.com/736x/53/f4/1f/53f41fc6243ffa55e8c4c6efc937fdcc.jpg" },
+	     { category: "Food & Drink", hiragana: "にく", kanji: "肉", romaji: "niku", pron: "[nee-koo]", meaning: "Meat", img: "https://i.pinimg.com/736x/06/d1/d3/06d1d3495a8e81472597346713651607.jpg" },
+ 	     { category: "Food & Drink", hiragana: "さかな", kanji: "魚", romaji: "sakana", pron: "[sah-kah-nah]", meaning: "Fish", img: "https://i.pinimg.com/736x/3a/f9/15/3af91587c2ea38dbc796f33ce6a890a8.jpg" },
+	     { category: "Food & Drink", hiragana: "やさい", kanji: "野菜", romaji: "yasai", pron: "[yah-sigh]", meaning: "Vegetables", img: "https://i.pinimg.com/736x/bc/58/97/bc5897039e8c21ce2edc4712ddb70eae.jpg" },
+	     { category: "Food & Drink", hiragana: "たまご", kanji: "卵", romaji: "tamago", pron: "[tah-mah-go]", meaning: "Egg", img: "https://i.pinimg.com/736x/31/47/f4/3147f423c6dd4bc702fbbb50ad1a0f7a.jpg" },
+ 	     { category: "Food & Drink", hiragana: "ぱん", kanji: "パン", romaji: "pan", pron: "[pahn]", meaning: "Bread", img: "https://i.pinimg.com/736x/87/ff/3d/87ff3d528cbb05cbde6fdb8c89a3a25c.jpg" },
+	     { category: "Food & Drink", hiragana: "さとう", kanji: "砂糖", romaji: "satou", pron: "[sah-toh]", meaning: "Sugar", img: "https://i.pinimg.com/736x/5b/59/21/5b59217a0c1ab837f974a006b697bff0.jpg" },
+	     { category: "Food & Drink", hiragana: "しお", kanji: "塩", romaji: "shio", pron: "[shee-oh]", meaning: "Salt", img: "https://i.pinimg.com/736x/78/67/b4/7867b44603ade54014454fe8871a0a2c.jpg" },
+ 	     { category: "Food & Drink", hiragana: "しょうゆ", kanji: "醤油", romaji: "shouyu", pron: "[shoh-yoo]", meaning: "Soy Sauce", img: "https://i.pinimg.com/736x/8e/86/b3/8e86b3ba70d67d881904c63f96e877e9.jpg" },
+	     { category: "Food & Drink", hiragana: "おさけ", kanji: "お酒", romaji: "osake", pron: "[oh-sah-keh]", meaning: "Alcohol / Sake", img: "https://i.pinimg.com/1200x/a0/1b/bf/a01bbf5d72814e3a005c43d0e1976690.jpg" },
+	     { category: "Food & Drink", hiragana: "びーる", kanji: "ビール", romaji: "biiru", pron: "[bee-roo]", meaning: "Beer", img: "https://i.pinimg.com/736x/00/59/03/0059038731873f337cf7403f0093977d.jpg" },
+	     { category: "Food & Drink", hiragana: "こーひー", kanji: "コーヒー", romaji: "koohii", pron: "[koh-hee]", meaning: "Coffee", img: "https://i.pinimg.com/736x/84/cb/92/84cb920d022502d000826d9c896c4e93.jpg" },
+ 	     { category: "Food & Drink", hiragana: "こうちゃ", kanji: "紅茶", romaji: "koucha", pron: "[koh-chah]", meaning: "Black Tea", img: "https://i.pinimg.com/736x/9b/9c/bc/9b9cbc8e37968d6f61aca7d161c83783.jpg" },
+	     { category: "Food & Drink", hiragana: "べんとう", kanji: "弁当", romaji: "bentou", pron: "[ben-toh]", meaning: "Box Lunch", img: "https://i.pinimg.com/736x/c5/d7/cc/c5d7cc73082265d290213200a980b539.jpg" },
+	     { category: "Food & Drink", hiragana: "おかし", kanji: "お菓子", romaji: "okashi", pron: "[oh-kah-shee]", meaning: "Sweets / Snacks", img: "https://i.pinimg.com/1200x/d2/68/3c/d2683c3c47c6b80c503d66591254efcb.jpg" },
+	     { category: "Food & Drink", hiragana: "あさごはん", kanji: "朝御飯", romaji: "asagohan", pron: "[ah-sah-go-hahn]", meaning: "Breakfast", img: "https://i.pinimg.com/736x/52/c2/5a/52c25a7322e70fed4e37e6dc5239adc7.jpg"},
+	     { category: "Food & Drink", hiragana: "ばんごはん", kanji: "晩御飯", romaji: "bangohan", pron: "[bahn-go-hahn]", meaning: "Dinner", img: "https://i.pinimg.com/736x/70/46/93/70469372639bd3806f0afa1c7688163f.jpg" },
+
+	     // ANIMALS (20 Words)
+	     { category: "Animals", hiragana: "いぬ", kanji: "犬", romaji: "inu", pron: "[ee-noo]", meaning: "Dog", img: "https://i.pinimg.com/1200x/20/45/f5/2045f5f187cf031e89028f5ab8d797c8.jpg" },
+	     { category: "Animals", hiragana: "ねこ", kanji: "猫", romaji: "neko", pron: "[neh-koo]", meaning: "Cat", img: "https://i.pinimg.com/1200x/16/16/c1/1616c19e994eabff88e7e9842dd5fac1.jpg" },
+	     { category: "Animals", hiragana: "とり", kanji: "鳥", romaji: "tori", pron: "[toh-ree]", meaning: "Bird", img: "https://i.pinimg.com/736x/36/08/73/360873c7d0172ba29b13bbd30546fd18.jpg" },
+	     { category: "Animals", hiragana: "さかな", kanji: "魚", romaji: "sakana", pron: "[sah-kah-nah]", meaning: "Fish", img: "https://i.pinimg.com/736x/de/a0/6c/dea06c0c1292110d95f107ddffaeff8e.jpg" },
+	     { category: "Animals", hiragana: "うま", kanji: "馬", romaji: "uma", pron: "[oo-mah]", meaning: "Horse", img: "https://i.pinimg.com/736x/cb/b6/f1/cbb6f158bfd89af2d97752574e8fa9f8.jpg" },
+	     { category: "Animals", hiragana: "うし", kanji: "牛", romaji: "ushi", pron: "[oo-shee]", meaning: "Cow", img: "https://i.pinimg.com/736x/f8/47/5e/f8475e0c28ed662388ab0c7d7d908286.jpg" },
+	     { category: "Animals", hiragana: "ぶた", kanji: "豚", romaji: "buta", pron: "[boo-tah]", meaning: "Pig", img: "https://i.pinimg.com/736x/17/15/f7/1715f716ec19dff4bb3d997ed0802dc8.jpg" },
+	     { category: "Animals", hiragana: "うさぎ", kanji: "うさぎ", romaji: "usagi", pron: "[oo-sah-gee]", meaning: "Rabbit", img: "https://i.pinimg.com/736x/ea/5e/ba/ea5ebad61d98f104a2804bd5dbaf474d.jpg" },
+	     { category: "Animals", hiragana: "ねずみ", kanji: "鼠", romaji: "nezumi", pron: "[neh-zoo-mee]", meaning: "Mouse", img: "https://i.pinimg.com/1200x/31/76/98/31769891c0a52718f1d2b65279a5d2a4.jpg" },
+	     { category: "Animals", hiragana: "さる", kanji: "猿", romaji: "saru", pron: "[sah-roo]", meaning: "Monkey", img: "https://i.pinimg.com/1200x/bb/88/09/bb88098ae90d1970ae5e4b25da0f9e3f.jpg" },
+	     { category: "Animals", hiragana: "へび", kanji: "蛇", romaji: "hebi", pron: "[heh-bee]", meaning: "Snake", img: "https://i.pinimg.com/736x/77/dc/80/77dc8061fae235631ac8a3b3ef76099c.jpg" },
+	     { category: "Animals", hiragana: "くま", kanji: "熊", romaji: "kuma", pron: "[koo-mah]", meaning: "Bear", img: "https://i.pinimg.com/1200x/3e/9c/f6/3e9cf6a4a79093aeead5ed9607292b47.jpg" },
+	     { category: "Animals", hiragana: "ぞう", kanji: "象", romaji: "zou", pron: "[zoh]", meaning: "Elephant", img: "https://i.pinimg.com/736x/98/d0/78/98d07878ced2f24bf33ea9baaae76a3c.jpg" },
+	     { category: "Animals", hiragana: "きりん", kanji: "麒麟", romaji: "kirin", pron: "[kee-reen]", meaning: "Giraffe", img: "https://i.pinimg.com/736x/e6/e4/bc/e6e4bcafe6c7c6c63fcc73536e246c43.jpg" },
+	     { category: "Animals", hiragana: "らいおん", kanji: "ライオン", romaji: "raion", pron: "[rie-on]", meaning: "Lion", img: "https://i.pinimg.com/736x/e1/bc/ed/e1bced56ba9b9ed0a4c7a0ce4469c726.jpg" },
+	     { category: "Animals", hiragana: "ぱんだ", kanji: "パンダ", romaji: "panda", pron: "[pahn-dah]", meaning: "Panda", img: "https://i.pinimg.com/736x/b5/a6/04/b5a6045283e5ce7feb58d443f23eed30.jpg" },
+	     { category: "Animals", hiragana: "むし", kanji: "虫", romaji: "mushi", pron: "[moo-shee]", meaning: "Insect", img: "https://i.pinimg.com/736x/2e/fd/a1/2efda17fed3fa616c680673df1c00224.jpg" },
+	     { category: "Animals", hiragana: "ひつじ", kanji: "羊", romaji: "hitsuji", pron: "[hee-tsu-jee]", meaning: "Sheep", img: "https://i.pinimg.com/736x/f7/e2/84/f7e284692da31208ea875af084fa2151.jpg" },
+	     { category: "Animals", hiragana: "やぎ", kanji: "山羊", romaji: "yagi", pron: "[yah-gee]", meaning: "Goat", img: "https://i.pinimg.com/736x/39/69/5a/39695a7e1f737735a1dafca2b0a0d57a.jpg" },
+	     { category: "Animals", hiragana: "かめ", kanji: "亀", romaji: "kame", pron: "[kah-meh]", meaning: "Turtle", img: "https://i.pinimg.com/1200x/7e/2f/df/7e2fdf77dd72542364c2d063afbbaf1c.jpg" },
+
+
+	     // VEGETABLES
+	     { category: "Vegetables", hiragana: "やさい", kanji: "野菜", romaji: "yasai", pron: "[yah-sigh]", meaning: "Vegetables", img: "https://i.pinimg.com/1200x/7b/4d/88/7b4d88bf24ccd0725cb6019cc9026fcf.jpg" },
+	     { category: "Vegetables", hiragana: "にんじん", kanji: "人参", romaji: "ninjin", pron: "[neen-jeen]", meaning: "Carrot", img: "https://i.pinimg.com/736x/1f/2e/f6/1f2ef6b46c66c12700476e8787a46216.jpg" },
+	     { category: "Vegetables", hiragana: "たまねぎ", kanji: "玉ねぎ", romaji: "tamanegi", pron: "[tah-mah-neh-ghee]", meaning: "Onion", img: "https://i.pinimg.com/736x/bc/c2/98/bcc298552a20388b0b723ed2e34156dc.jpg" },
+	     { category: "Vegetables", hiragana: "じゃがいも", kanji: "馬鈴薯", romaji: "jagaimo", pron: "[jah-gah-ee-moh]", meaning: "Potato", img: "https://i.pinimg.com/1200x/2f/87/a6/2f87a612e0cc0a53a9cbdb5786655fcc.jpg" },
+	     { category: "Vegetables", hiragana: "なす", kanji: "茄子", romaji: "nasu", pron: "[nah-soo]", meaning: "Eggplant", img: "https://i.pinimg.com/736x/a9/d4/a1/a9d4a1eeff0141e0143c3f1631be78a3.jpg" },
+	     { category: "Vegetables", hiragana: "きゅうり", kanji: "胡瓜", romaji: "kyuuri", pron: "[kyoo-ree]", meaning: "Cucumber", img: "https://i.pinimg.com/736x/92/e4/48/92e448fa6b82584da7f4229b1205b3d4.jpg" },
+	     { category: "Vegetables", hiragana: "とまと", kanji: "蕃茄", romaji: "tomato", pron: "[toh-mah-toh]", meaning: "Tomato", img: "https://i.pinimg.com/736x/4f/bf/46/4fbf46f62f7cc7ce31c9890b08e61b54.jpg" },
+	     { category: "Vegetables", hiragana: "ほうれんそう", kanji: "菠薐草", romaji: "hourensou", pron: "[hoh-ren-soh]", meaning: "Spinach", img: "https://i.pinimg.com/736x/91/66/a4/9166a4168f223836205eb69210ead8dc.jpg" },
+	     { category: "Vegetables", hiragana: "だいこん", kanji: "大根", romaji: "daikon", pron: "[die-kohn]", meaning: "Radish", img: "https://i.pinimg.com/736x/12/b9/70/12b970d972eff6a6d5b357640b8cfed1.jpg" },
+	     { category: "Vegetables", hiragana: "かぼちゃ", kanji: "南瓜", romaji: "kabocha", pron: "[kah-bo-chah]", meaning: "Pumpkin / Squash", img: "https://i.pinimg.com/1200x/5c/41/87/5c4187134872fc219bff1320d1aad106.jpg" },
+	     { category: "Vegetables", hiragana: "れんこん", kanji: "蓮根", romaji: "renkon", pron: "[ren-kohn]", meaning: "Lotus Root", img: "https://i.pinimg.com/736x/3d/7b/bb/3d7bbb50b4086e1b873605b465cbf95a.jpg" },
+	     { category: "Vegetables", hiragana: "ぴーまん", kanji: "青椒", romaji: "piiman", pron: "[pee-mahn]", meaning: "Bell Pepper", img: "https://i.pinimg.com/736x/bb/2d/ad/bb2dad3fccbaee2421253b188b11c30a.jpg" },
+	     { category: "Vegetables", hiragana: "きゃべつ", kanji: "甘藍", romaji: "kyabetsu", pron: "[kyah-beh-tsu]", meaning: "Cabbage", img: "https://i.pinimg.com/736x/3b/0a/c7/3b0ac7b5e5f6f48a702fa3eb1ed7a9e6.jpg" },
+	     { category: "Vegetables", hiragana: "はくさい", kanji: "白菜", romaji: "hakusai", pron: "[hah-koo-sigh]", meaning: "Chinese Cabbage", img: "https://i.pinimg.com/1200x/3d/bd/9d/3dbd9d3ce270857e22832a6c058fe5aa.jpg" },
+	     { category: "Vegetables", hiragana: "きのこ", kanji: "茸", romaji: "kinoko", pron: "[kee-no-koh]", meaning: "Mushroom", img: "https://i.pinimg.com/736x/52/50/2f/52502f824fa0176be53df91091284fb5.jpg" },
+	     { category: "Vegetables", hiragana: "ねぎ", kanji: "葱", romaji: "negi", pron: "[neh-ghee]", meaning: "Green Onion / Leek", img: "https://i.pinimg.com/1200x/61/d8/74/61d874d7205804acdddeecda414c22ab.jpg" },
+	     { category: "Vegetables", hiragana: "にんにく", kanji: "大蒜", romaji: "ninniku", pron: "[neen-nee-koo]", meaning: "Garlic", img: "https://i.pinimg.com/1200x/c1/3c/ed/c13cedd4903ba1f1efeee1b6a995e085.jpg" },
+	     { category: "Vegetables", hiragana: "さつまいも", kanji: "薩摩芋", romaji: "satsumaimo", pron: "[sah-tsu-mah-ee-moh]", meaning: "Sweet Potato", img: "https://i.pinimg.com/736x/17/2f/a0/172fa06ebb5021c645b7e1730bd23176.jpg" },
+	     { category: "Vegetables", hiragana: "とうもろこし", kanji: "玉蜀黍", romaji: "toumorokoshi", pron: "[toh-moh-roh-ko-shee]", meaning: "Corn", img: "https://i.pinimg.com/736x/c3/00/af/c300af1b9d43198820efa3d1d7c763f7.jpg" },
+	     { category: "Vegetables", hiragana: "ぶろっこりー", kanji: "芽花椰菜", romaji: "burokkorii", pron: "[boo-rohk-koh-ree]", meaning: "Broccoli", img: "https://i.pinimg.com/736x/0e/4f/16/0e4f1648a6b2ff3abd710d779f2f7863.jpg" },
+
+	     // TRANSPORTATION
+	     { category: "Transportation", hiragana: "くるま", kanji: "車", romaji: "kuruma", pron: "[koo-roo-mah]", meaning: "Car", img: "https://i.pinimg.com/1200x/90/7b/7c/907b7cdfbff3574a20a243b7762bbc49.jpg" },
+	     { category: "Transportation", hiragana: "でんしゃ", kanji: "電車", romaji: "densha", pron: "[den-shah]", meaning: "Train", img: "https://i.pinimg.com/736x/38/80/c2/3880c2bf54856fe40fbac7b94db466cd.jpg" },
+	     { category: "Transportation", hiragana: "ひこうき", kanji: "飛行機", romaji: "hikouki", pron: "[hee-koh-kee]", meaning: "Airplane", img: "https://i.pinimg.com/736x/6d/ee/50/6dee502396ee70dd46bb82e5ef3b0d22.jpg" },
+	     { category: "Transportation", hiragana: "ふね", kanji: "船", romaji: "fune", pron: "[foo-neh]", meaning: "Ship / Boat", img: "https://i.pinimg.com/1200x/df/ca/a4/dfcaa44488aaebb5f72ae6053170e359.jpg" },
+	     { category: "Transportation", hiragana: "じてんしゃ", kanji: "自転車", romaji: "jitensha", pron: "[jee-ten-shah]", meaning: "Bicycle", img: "https://i.pinimg.com/736x/f9/00/5d/f9005d8dd368ff7aa3280c6d568b8f5d.jpg" },
+	     { category: "Transportation", hiragana: "ばす", kanji: "バス", romaji: "basu", pron: "[bah-soo]", meaning: "Bus", img: "https://i.pinimg.com/1200x/04/46/d2/0446d2728857df8124628c251e615e6b.jpg" },
+	     { category: "Transportation", hiragana: "おーとばい", kanji: "単車", romaji: "ootobai", pron: "[oh-toh-bye]", meaning: "Motorcycle", img: "https://i.pinimg.com/736x/da/9e/52/da9e527cc2d2e091850b8c9f33306757.jpg" },
+	     { category: "Transportation", hiragana: "たくしい", kanji: "手配車", romaji: "takushii", pron: "[tah-koo-shee]", meaning: "Taxi", img: "https://i.pinimg.com/736x/72/f3/61/72f3617f3c20d2acfc6755fddd4fc2a0.jpg" },
+ 	     { category: "Transportation", hiragana: "ちかてつ", kanji: "地下鉄", romaji: "chikatetsu", pron: "[chee-kah-teh-tsu]", meaning: "Subway", img: "https://i.pinimg.com/736x/85/5b/5c/855b5ce8eccd14054b7a896fdfa12432.jpg" },
+	     { category: "Transportation", hiragana: "しんかんせん", kanji: "新幹線", romaji: "shinkansen", pron: "[sheen-kahn-sen]", meaning: "Bullet Train", img: "https://i.pinimg.com/736x/d1/82/76/d18276bd4d4983638d5caeca810c45d4.jpg" },
+	     { category: "Transportation", hiragana: "じんりきしゃ", kanji: "人力車", romaji: "jinrikisha", pron: "[jeen-ree-kee-shah]", meaning: "Rickshaw", img: "https://i.pinimg.com/1200x/c0/8a/1f/c08a1fb07ffa22bfe26f97e3f8d903eb.jpg" },
+	     { category: "Transportation", hiragana: "へりこぷたー", kanji: "回転翼機", romaji: "herikoputaa", pron: "[heh-ree-koh-poo-tah]", meaning: "Helicopter", img: "https://i.pinimg.com/736x/9d/4a/cb/9d4acb53d4392303aa75082a88e022e1.jpg" },
+	     { category: "Transportation", hiragana: "とらっく", kanji: "貨物車", romaji: "torakku", pron: "[toh-rahk-koo]", meaning: "Truck", img: "https://i.pinimg.com/1200x/0f/2a/ec/0f2aec95b9828e88a5c78fc69a060994.jpg" },
+	     { category: "Transportation", hiragana: "ききゅう", kanji: "気球", romaji: "kikyuu", pron: "[kee-kyuu]", meaning: "Hot Air Balloon", img: "https://i.pinimg.com/736x/1a/ef/03/1aef037e939f35447674f0cd06122942.jpg" },
+	     { category: "Transportation", hiragana: "よっと", kanji: "快遊船", romaji: "yotto", pron: "[yoht-toh]", meaning: "Yacht", img: "https://i.pinimg.com/1200x/7c/3f/9a/7c3f9a8314a1f1cf75c5ce78897fa140.jpg" },
+	     { category: "Transportation", hiragana: "ばしゃ", kanji: "馬車", romaji: "basha", pron: "[bah-shah]", meaning: "Horse Carriage", img: "https://i.pinimg.com/736x/bf/44/64/bf446402f2aa3a1bbc750fd11ca5a505.jpg" },
+	     { category: "Transportation", hiragana: "ろーぷうえー", kanji: "索道", romaji: "roopuwee", pron: "[roh-poo-way]", meaning: "Ropeway / Cable Car", img: "https://i.pinimg.com/736x/43/fd/41/43fd41d74a87e6c0ae5585736f98c24d.jpg" },
+	     { category: "Transportation", hiragana: "ふぇりー", kanji: "連絡船", romaji: "ferii", pron: "[feh-ree]", meaning: "Ferry", img: "https://i.pinimg.com/1200x/d5/0f/28/d50f28860887fa0c8214e8b0a180609e.jpg" },
+	     { category: "Transportation", hiragana: "すくーたー", kanji: "小型二輪", romaji: "sukuutaa", pron: "[skoo-tah]", meaning: "Scooter", img: "https://i.pinimg.com/736x/07/a3/c8/07a3c8013f4cb2ace9c17142cbfd686b.jpg" },
+	     { category: "Transportation", hiragana: "じぇっとき", kanji: "噴進機", romaji: "jettoki", pron: "[jet-toh-kee]", meaning: "Jet Plane", img: "https://i.pinimg.com/736x/8a/e1/2a/8ae12abe95f0260588390402b3337d93.jpg" },
+
+	     // CLOTHING
+{ category: "Clothing", hiragana: "ふく", kanji: "服", romaji: "fuku", pron: "[foo-koo]", meaning: "Clothes", img: "https://i.pinimg.com/736x/d4/2e/70/d42e70ca3e26df6bd2811f832eb4cc6d.jpg" },
+{ category: "Clothing", hiragana: "きもの", kanji: "着物", romaji: "kimono", pron: "[kee-moh-no]", meaning: "Kimono", img: "https://i.pinimg.com/736x/fc/67/15/fc6715ab44ec5d9b2592ad9a8232c7f1.jpg" },
+{ category: "Clothing", hiragana: "ゆかた", kanji: "浴衣", romaji: "yukata", pron: "[yoo-kah-tah]", meaning: "Yukata (Summer Kimono)", img: "https://i.pinimg.com/736x/12/82/52/1282528fa1edda408337a7192185835a.jpg" },
+{ category: "Clothing", hiragana: "しゃつ", kanji: "シャツ", romaji: "shatsu", pron: "[sha-tsu]", meaning: "Shirt", img: "https://i.pinimg.com/1200x/3a/60/02/3a60027b6fee8243613596b51b4d142f.jpg" },
+{ category: "Clothing", hiragana: "ずぼん", kanji: "ズボン", romaji: "zubon", pron: "[zoo-bohn]", meaning: "Trousers / Pants", img: "https://i.pinimg.com/736x/cb/bb/73/cbbb73d72cc0be8ff741f087dcfd7c4f.jpg" },
+{ category: "Clothing", hiragana: "すかーと", kanji: "スカート", romaji: "sukaato", pron: "[skah-toh]", meaning: "Skirt", img: "https://i.pinimg.com/736x/cd/5e/d0/cd5ed05dc40cf40b03aa971e1651c3d8.jpg" },
+{ category: "Clothing", hiragana: "わんぴーす", kanji: "一領", romaji: "wanpiisu", pron: "[wahn-pee-soo]", meaning: "Dress", img: "https://i.pinimg.com/736x/1a/72/de/1a72de8dd90ff1dac5e3a0798e7f8906.jpg" },
+{ category: "Clothing", hiragana: "くつした", kanji: "靴下", romaji: "kutsushita", pron: "[koo-tsu-shee-tah]", meaning: "Socks", img: "https://i.pinimg.com/736x/e7/cc/bc/e7ccbc5eb97a9523f6e43939f79a7afa.jpg" },
+{ category: "Clothing", hiragana: "ぼうし", kanji: "帽子", romaji: "boushi", pron: "[boh-shee]", meaning: "Hat", img: "https://i.pinimg.com/736x/85/13/5f/85135fdfcee57cfdd61e2aa9dd404714.jpg" },
+{ category: "Clothing", hiragana: "てぶくろ", kanji: "手袋", romaji: "tebukuro", pron: "[teh-boo-koo-roh]", meaning: "Gloves", img: "https://i.pinimg.com/736x/da/5b/1b/da5b1b92ba6d51dc39190cf6c47b9089.jpg" },
+{ category: "Clothing", hiragana: "まふらー", kanji: "襟巻", romaji: "mafuraa", pron: "[mah-foo-rah]", meaning: "Scarf", img: "https://i.pinimg.com/736x/62/c1/0c/62c10c1746faa22a9d333af829e219db.jpg" },
+{ category: "Clothing", hiragana: "こーと", kanji: "外套", romaji: "kooto", pron: "[koh-toh]", meaning: "Coat", img: "https://i.pinimg.com/736x/80/1e/90/801e9001cf24387bda5d6820944d7690.jpg" },
+{ category: "Clothing", hiragana: "ねくたい", kanji: "ネクタイ", romaji: "nekutai", pron: "[neh-koo-tie]", meaning: "Necktie", img: "https://i.pinimg.com/1200x/ab/f4/52/abf452a96abdb815f97a5027a0e23520.jpg" },
+{ category: "Clothing", hiragana: "したぎ", kanji: "下着", romaji: "shitagi", pron: "[shee-tah-ghee]", meaning: "Underwear", img: "https://i.pinimg.com/1200x/27/ef/0c/27ef0c5758d2632f8e56355511fc269b.jpg" },
+{ category: "Clothing", hiragana: "みずぎ", kanji: "水着", romaji: "mizugi", pron: "[mee-zoo-ghee]", meaning: "Swimsuit", img: "https://i.pinimg.com/1200x/c0/15/35/c015358b86e59fe3789a6f3b01944927.jpg" },
+{ category: "Clothing", hiragana: "うわぎ", kanji: "上着", romaji: "uwagi", pron: "[oo-wah-ghee]", meaning: "Jacket / Outerwear", img: "https://i.pinimg.com/736x/08/1e/40/081e406b78f50395f61603f381f1a587.jpg" },
+{ category: "Clothing", hiragana: "ぱじゃま", kanji: "パジャマ", romaji: "pajama", pron: "[pah-jah-mah]", meaning: "Pyjamas", img: "https://i.pinimg.com/736x/51/4c/d5/514cd58f91675eaa3bc9aab59a447d4f.jpg" },
+{ category: "Clothing", hiragana: "めがね", kanji: "眼鏡", romaji: "megane", pron: "[meh-gah-neh]", meaning: "Glasses", img: "https://i.pinimg.com/736x/d3/a5/6a/d3a56a7b9ca151c5ab64589a7e195211.jpg" },
+{ category: "Clothing", hiragana: "ゆびわ", kanji: "指輪", romaji: "yubiwa", pron: "[yoo-bee-wah]", meaning: "Ring", img: "https://i.pinimg.com/1200x/bf/db/65/bfdb65b6c10eb65877e301689dfb1dd7.jpg" },
+{ category: "Clothing", hiragana: "べると", kanji: "ベルト", romaji: "beruto", pron: "[beh-roo-toh]", meaning: "Belt", img: "https://i.pinimg.com/736x/f4/67/a2/f467a2e2ce86c4927fabcd1e2ddff7cd.jpg" },
+
+
+	     // COLOURS
+{ category: "Colours", hiragana: "いろ", kanji: "色", romaji: "iro", pron: "[ee-roh]", meaning: "Colour", img: "https://i.pinimg.com/736x/34/2a/94/342a940352127a7e623a2359b44e65b9.jpg" },
+{ category: "Colours", hiragana: "あか", kanji: "赤", romaji: "aka", pron: "[ah-kah]", meaning: "Red", img: "https://i.pinimg.com/736x/93/72/9c/93729c9befdce9fb4c19e30f7b63bfe6.jpg" },
+{ category: "Colours", hiragana: "あお", kanji: "青", romaji: "ao", pron: "[ah-oh]", meaning: "Blue", img: "https://i.pinimg.com/736x/82/52/2b/82522b545e14bb2593cc9d8fe88175f4.jpg" },
+{ category: "Colours", hiragana: "きいろ", kanji: "黄色", romaji: "kiiro", pron: "[kee-ee-roh]", meaning: "Yellow", img: "https://i.pinimg.com/736x/92/ee/90/92ee90026f352985165014ab693d1f32.jpg" },
+{ category: "Colours", hiragana: "みどり", kanji: "緑", romaji: "midori", pron: "[mee-doh-ree]", meaning: "Green", img: "https://i.pinimg.com/1200x/0e/de/2c/0ede2c7fbcbaa4c36e325b1453e1060c.jpg" },
+{ category: "Colours", hiragana: "くろ", kanji: "黒", romaji: "kuro", pron: "[koo-roh]", meaning: "Black", img: "https://i.pinimg.com/736x/da/92/ab/da92abb1cd249cdbccffd4efbbc1f893.jpg" },
+{ category: "Colours", hiragana: "しろ", kanji: "白", romaji: "shiro", pron: "[shee-roh]", meaning: "White", img: "https://i.pinimg.com/736x/f9/d2/e0/f9d2e08e287a3c17a4ad2b282f5df354.jpg" },
+{ category: "Colours", hiragana: "ちゃいろ", kanji: "茶色", romaji: "chairo", pron: "[chah-ee-roh]", meaning: "Brown", img: "https://i.pinimg.com/736x/89/a6/9e/89a69eececf92a0c44309a5c1e157674.jpg" },
+{ category: "Colours", hiragana: "ももいろ", kanji: "桃色", romaji: "momoiro", pron: "[mo-mo-ee-roh]", meaning: "Pink", img: "https://i.pinimg.com/1200x/9b/be/c5/9bbec550d570df427abb5aa9b1eab815.jpg" },
+{ category: "Colours", hiragana: "だいだいいろ", kanji: "橙色", romaji: "daidaiiro", pron: "[die-die-ee-roh]", meaning: "Orange", img: "https://i.pinimg.com/736x/07/cb/31/07cb319754a391567eb754948f81d3ba.jpg" },
+{ category: "Colours", hiragana: "むらさき", kanji: "紫", romaji: "murasaki", pron: "[moo-rah-sah-kee]", meaning: "Purple", img: "https://i.pinimg.com/736x/1d/ed/e6/1dede6707b680380811734ce1372c8be.jpg" },
+{ category: "Colours", hiragana: "はいいろ", kanji: "灰色", romaji: "haiiro", pron: "[high-ee-roh]", meaning: "Grey", img: "https://i.pinimg.com/1200x/5b/1a/a0/5b1aa05926dcb6837119f6489be6d032.jpg" },
+{ category: "Colours", hiragana: "きんいろ", kanji: "金色", romaji: "kiniro", pron: "[keen-ee-roh]", meaning: "Gold", img: "https://i.pinimg.com/1200x/61/c0/e5/61c0e587849948baa3d5d3734704e43a.jpg" },
+{ category: "Colours", hiragana: "ぎんいろ", kanji: "銀色", romaji: "giniro", pron: "[geen-ee-roh]", meaning: "Silver", img: "https://i.pinimg.com/1200x/b0/58/09/b0580967fec105b244fc7d5d76cb0875.jpg" },
+{ category: "Colours", hiragana: "みずいろ", kanji: "水色", romaji: "mizuiro", pron: "[mee-zoo-ee-roh]", meaning: "Light Blue", img: "https://i.pinimg.com/736x/df/75/cf/df75cf8b89380f791df3187355c4061e.jpg" },
+{ category: "Colours", hiragana: "こんいろ", kanji: "紺色", romaji: "koniro", pron: "[kohn-ee-roh]", meaning: "Navy Blue", img: "https://i.pinimg.com/736x/b7/56/f6/b756f658643649d05223ffb498d37e2e.jpg" },
+{ category: "Colours", hiragana: "ふじいろ", kanji: "藤色", romaji: "fujiiro", pron: "[foo-jee-ee-roh]", meaning: "Lavender", img: "https://i.pinimg.com/736x/3f/4d/3a/3f4d3a3eca812f3461a4fc40e49f874c.jpg" },
+{ category: "Colours", hiragana: "おうどいろ", kanji: "黄土色", romaji: "oudoiro", pron: "[oh-doh-ee-roh]", meaning: "Ochre / Dark Yellow", img: "https://i.pinimg.com/736x/13/2f/83/132f83305de4236ffb4262d1e7f96e3d.jpg" },
+{ category: "Colours", hiragana: "こむぎいろ", kanji: "小麦色", romaji: "komugiiro", pron: "[koh-moo-ghee-ee-roh]", meaning: "Tan / Wheat Colour", img: "https://i.pinimg.com/1200x/b0/84/12/b084125288f597d50748d142ce893869.jpg" },
+{ category: "Colours", hiragana: "にじいろ", kanji: "虹色", romaji: "nijiiro", pron: "[nee-jee-ee-roh]", meaning: "Rainbow Colour", img: "https://i.pinimg.com/736x/04/b3/01/04b30160be748a2ff517310ab7338fe8.jpg" },
+	     
+
+        ];
+
+        let filteredWords = [];
+        let currentIndex = 0;
+
+        function flipCard() { document.getElementById('cardInner').classList.toggle('is-flipped'); }
+
+        function filterByCategory() {
+            const category = document.getElementById('categoryFilter').value;
+            filteredWords = dictionary.filter(word => word.category === category);
+            currentIndex = 0;
+            document.getElementById('cardInner').classList.remove('is-flipped');
+            displayCard();
+        }
+
+        function displayCard() {
+            if (filteredWords.length === 0) return;
+            const word = filteredWords[currentIndex];
+            if(document.getElementById('cardInner').classList.contains('is-flipped')) {
+                document.getElementById('cardInner').classList.remove('is-flipped');
+                setTimeout(() => updateContent(word), 300);
+            } else { updateContent(word); }
+        }
+
+        function updateContent(word) {
+            document.getElementById('hiragana').innerText = word.hiragana;
+            document.getElementById('romaji').innerText = word.romaji;
+            document.getElementById('pron').innerText = word.pron;
+            document.getElementById('meaning').innerText = word.meaning;
+            document.getElementById('kanji').innerText = word.kanji;
+            document.getElementById('cardImage').src = word.img;
+            document.getElementById('prevBtn').disabled = currentIndex === 0;
+            document.getElementById('nextBtn').disabled = currentIndex === filteredWords.length - 1;
+        }
+
+        function nextWord(e) { e.stopPropagation(); if (currentIndex < filteredWords.length - 1) { currentIndex++; displayCard(); } }
+        function prevWord(e) { e.stopPropagation(); if (currentIndex > 0) { currentIndex--; displayCard(); } }
+
+        window.onload = filterByCategory;
+    </script>
+</body>
+</html>
